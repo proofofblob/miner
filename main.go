@@ -193,18 +193,32 @@ func makeTx(b kzg4844.Blob) (signedTx *types.Transaction, err error) {
 		"max blob fee cap(wei)": maxBlobFeeCap,
 	}).Info("calc max blob fee cap")
 
-	tx := types.NewTx(&types.BlobTx{
+	blobTx := &types.BlobTx{
 		ChainID:    uint256.MustFromBig(chainId),
 		Nonce:      nonce,
 		GasTipCap:  uint256.MustFromBig(userGasTipCap),
 		GasFeeCap:  uint256.MustFromBig(userGasPrice),
-		Gas:        150000,
 		To:         contract,
 		Data:       common.Hex2Bytes("1249c58b"), // mint
 		BlobFeeCap: uint256.MustFromBig(maxBlobFeeCap),
 		BlobHashes: sidecar.BlobHashes(),
 		Sidecar:    sidecar,
+	}
+
+	gasLimit, err := rpcClient.EstimateGas(context.Background(), ethereum.CallMsg{
+		From:       sender,
+		To:         &contract,
+		Data:       blobTx.Data,
+		BlobHashes: sidecar.BlobHashes(),
 	})
+
+	if err != nil {
+		log.WithError(err).Error("failed to estimate gas")
+		return
+	}
+	log.WithField("gas", gasLimit+20000).Info("rpc estimate gas")
+	blobTx.Gas = gasLimit + 20000
+	tx := types.NewTx(blobTx)
 
 	signedTransaction, err := types.SignTx(tx, types.NewCancunSigner(chainId), privateKey)
 	if err != nil {
