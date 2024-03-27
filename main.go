@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/holiman/uint256"
@@ -283,8 +282,6 @@ func mine() {
 }
 
 func main() {
-	fmt.Println(crypto.CreateAddress(common.HexToAddress("0xbeba9afc84a5d1b027efa0fd244b3b42ca10c3d1"), 0))
-
 	initRPC()
 	if !cmd() {
 		return
