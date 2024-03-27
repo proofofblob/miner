@@ -148,7 +148,7 @@ func initTarget() {
 }
 
 func randomBlob() (b kzg4844.Blob, ok bool) {
-	temp := make([]byte, 1024*1024)
+	temp := make([]byte, 126*1024)
 	rand.Read(temp)
 	blobs, _ := blobutil.EncodeBlobs(temp)
 	c, _ := kzg4844.BlobToCommitment(blobs[0])
