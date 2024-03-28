@@ -65,6 +65,8 @@ func cmd() (ok bool) {
 		return
 	}
 
+	gasPrice = big.NewInt(0).Add(gasPrice, big.NewInt(1e10)) // gas cap base + 10gwei
+
 	fgas, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt(gasPrice), big.NewFloat(1e9)).Float64()
 	validate4 := func(inp interface{}) error {
 		input := inp.(string)
