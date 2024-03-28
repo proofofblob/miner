@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -38,8 +37,8 @@ func cmd() (ok bool) {
 		if err != nil {
 			return err
 		}
-		if count > 10 {
-			return errors.New("max user mint count is 10")
+		if count > int(userLimit.Int64()) {
+			return fmt.Errorf("max user mint count is %d", userLimit.Int64())
 		}
 		maxMintCount = uint64(count)
 		return nil
@@ -95,7 +94,7 @@ func cmd() (ok bool) {
 			Name: "mintCount",
 			Prompt: &survey.Input{
 				Message: "Input your mint count:",
-				Help:    "max 10",
+				Help:    fmt.Sprintf("max mint count is %d", userLimit.Int64()),
 			},
 			Validate: validate2,
 		},

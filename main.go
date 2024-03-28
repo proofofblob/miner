@@ -47,6 +47,10 @@ var (
 
 	target = big.NewInt(0)
 
+	userLimit = big.NewInt(5)
+
+	totalSupply = big.NewInt(4844)
+
 	hashCount uint64
 
 	blobCh = make(chan *kzg4844.Blob, 3)
@@ -103,7 +107,7 @@ func checkMintLimit() (ok bool) {
 
 	log.Infof("you have minted %d", big.NewInt(0).SetBytes(resp).Uint64())
 
-	if big.NewInt(0).SetBytes(resp).Cmp(big.NewInt(10)) >= 0 {
+	if big.NewInt(0).SetBytes(resp).Cmp(userLimit) >= 0 {
 		return true
 	}
 
@@ -118,7 +122,7 @@ func checkMintLimit() (ok bool) {
 
 	log.Infof("total minted: %d", big.NewInt(0).SetBytes(resp).Uint64())
 
-	if big.NewInt(0).SetBytes(resp).Cmp(big.NewInt(14844)) > 0 {
+	if big.NewInt(0).SetBytes(resp).Cmp(totalSupply) > 0 {
 		return true
 	}
 	return false
@@ -180,18 +184,18 @@ func makeTx(b kzg4844.Blob) (signedTx *types.Transaction, err error) {
 		"address": sender,
 	}).Info("rpc get nonce")
 
-	parentHeader, err := rpcClient.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		log.WithError(err).Error("failed to get parent header")
-		return
-	}
-	log.WithField("height", parentHeader.Number.String()).Info("rpc get parent header")
-	parentExcessBlobGas := eip4844.CalcExcessBlobGas(*parentHeader.ExcessBlobGas, *parentHeader.BlobGasUsed)
-	blobFeeCap := eip4844.CalcBlobFee(parentExcessBlobGas)
-	maxBlobFeeCap := big.NewInt(0).Mul(blobFeeCap, big.NewInt(5))
-	log.WithFields(log.Fields{
-		"max blob fee cap(wei)": maxBlobFeeCap,
-	}).Info("calc max blob fee cap")
+	// parentHeader, err := rpcClient.HeaderByNumber(context.Background(), nil)
+	// if err != nil {
+	// 	log.WithError(err).Error("failed to get parent header")
+	// 	return
+	// }
+	// log.WithField("height", parentHeader.Number.String()).Info("rpc get parent header")
+	// parentExcessBlobGas := eip4844.CalcExcessBlobGas(*parentHeader.ExcessBlobGas, *parentHeader.BlobGasUsed)
+	// blobFeeCap := eip4844.CalcBlobFee(parentExcessBlobGas)
+	// maxBlobFeeCap := big.NewInt(0).Mul(blobFeeCap, big.NewInt(5))
+	// log.WithFields(log.Fields{
+	// 	"max blob fee cap(wei)": maxBlobFeeCap,
+	// }).Info("calc max blob fee cap")
 
 	blobTx := &types.BlobTx{
 		ChainID:    uint256.MustFromBig(chainId),
@@ -199,8 +203,8 @@ func makeTx(b kzg4844.Blob) (signedTx *types.Transaction, err error) {
 		GasTipCap:  uint256.MustFromBig(userGasTipCap),
 		GasFeeCap:  uint256.MustFromBig(userGasPrice),
 		To:         contract,
-		Data:       common.Hex2Bytes("1249c58b"), // mint
-		BlobFeeCap: uint256.MustFromBig(maxBlobFeeCap),
+		Data:       common.Hex2Bytes("1249c58b"),          // mint
+		BlobFeeCap: uint256.MustFromBig(big.NewInt(1e11)), // max blob gas fee 100 gwei
 		BlobHashes: sidecar.BlobHashes(),
 		Sidecar:    sidecar,
 	}
