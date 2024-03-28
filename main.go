@@ -53,7 +53,7 @@ var (
 
 	hashCount uint64
 
-	blobCh = make(chan *kzg4844.Blob, 3)
+	blobCh = make(chan *kzg4844.Blob)
 )
 
 func monitor() {
