@@ -15,7 +15,6 @@ import (
 	"github.com/enescakir/emoji"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -50,6 +49,8 @@ var (
 	userLimit = big.NewInt(5)
 
 	totalSupply = big.NewInt(4844)
+
+	maxBlobFeeCap = big.NewInt(0)
 
 	hashCount uint64
 
@@ -183,19 +184,6 @@ func makeTx(b kzg4844.Blob) (signedTx *types.Transaction, err error) {
 		"nonce":   nonce,
 		"address": sender,
 	}).Info("rpc get nonce")
-
-	parentHeader, err := rpcClient.HeaderByNumber(context.Background(), nil)
-	if err != nil {
-		log.WithError(err).Error("failed to get parent header")
-		return
-	}
-	log.WithField("height", parentHeader.Number.String()).Info("rpc get parent header")
-	parentExcessBlobGas := eip4844.CalcExcessBlobGas(*parentHeader.ExcessBlobGas, *parentHeader.BlobGasUsed)
-	blobFeeCap := eip4844.CalcBlobFee(parentExcessBlobGas)
-	maxBlobFeeCap := big.NewInt(0).Mul(blobFeeCap, big.NewInt(10)) // 10 times
-	log.WithFields(log.Fields{
-		"max blob fee cap(wei)": maxBlobFeeCap,
-	}).Info("calc max blob fee cap")
 
 	blobTx := &types.BlobTx{
 		ChainID:    uint256.MustFromBig(chainId),

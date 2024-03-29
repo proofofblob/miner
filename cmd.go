@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -59,15 +60,15 @@ func cmd() (ok bool) {
 		return nil
 	}
 
-	gasPrice, err := rpcClient.SuggestGasPrice(context.Background())
+	defaultGasPriceWei, err := rpcClient.SuggestGasPrice(context.Background())
 	if err != nil {
 		fmt.Printf("rpcClient.SuggestGasPrice failed %v\n", err)
 		return
 	}
 
-	gasPrice = big.NewInt(0).Add(gasPrice, big.NewInt(1e10)) // gas cap base + 10gwei
+	defaultGasPriceWei = big.NewInt(0).Add(defaultGasPriceWei, big.NewInt(1e10)) // gas cap base + 10gwei
 
-	fgas, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt(gasPrice), big.NewFloat(1e9)).Float64()
+	fgas, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt(defaultGasPriceWei), big.NewFloat(1e9)).Float64()
 	validate4 := func(inp interface{}) error {
 		input := inp.(string)
 		if len(input) == 0 {
@@ -80,6 +81,30 @@ func cmd() (ok bool) {
 		}
 
 		userGasTipCap = big.NewInt(int64(fgwei * 1e9))
+		return nil
+	}
+
+	parentHeader, err := rpcClient.HeaderByNumber(context.Background(), nil)
+	if err != nil {
+		fmt.Printf("failed to get parent header, %v\n", err)
+		return
+	}
+	parentExcessBlobGas := eip4844.CalcExcessBlobGas(*parentHeader.ExcessBlobGas, *parentHeader.BlobGasUsed)
+	blobFeeCap := eip4844.CalcBlobFee(parentExcessBlobGas)
+	defaultBlobFeeCap := big.NewInt(0).Mul(blobFeeCap, big.NewInt(2)) // 2 times
+	defaultBlobFeeCapGwei, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt(defaultBlobFeeCap), big.NewFloat(1e9)).Float64()
+	validate5 := func(inp interface{}) error {
+		input := inp.(string)
+		if len(input) == 0 {
+			return fmt.Errorf("invalid length")
+		}
+
+		fwei, err := strconv.ParseFloat(input, 64)
+		if err != nil {
+			return err
+		}
+
+		maxBlobFeeCap = big.NewInt(int64(fwei * 1e9))
 		return nil
 	}
 
@@ -101,27 +126,41 @@ func cmd() (ok bool) {
 			Validate: validate2,
 		},
 		{
-			Name:     "gasPrice",
-			Prompt:   &survey.Input{Message: "Input max gas price (gwei):", Default: fmt.Sprintf("%.2f", fgas)},
+			Name: "gasPrice",
+			Prompt: &survey.Input{
+				Message: "Input max gas price (gwei):",
+				Default: fmt.Sprintf("%.2f", fgas),
+			},
 			Validate: validate3,
 		},
 		{
-			Name:     "gasFeeTip",
-			Prompt:   &survey.Input{Message: "Input gas tip cap (gwei):", Default: "0.01"},
+			Name: "gasFeeTip",
+			Prompt: &survey.Input{
+				Message: "Input gas tip cap (gwei):",
+				Default: "0.01",
+			},
 			Validate: validate4,
+		},
+		{
+			Name: "maxBlobFeeCap",
+			Prompt: &survey.Input{
+				Message: "Input max blob gas fee cap (gwei):",
+				Default: fmt.Sprintf("%.4f", defaultBlobFeeCapGwei),
+			},
+			Validate: validate5,
 		},
 	}
 
 	resp := struct {
-		PrivateKey string
-		MintCount  int
-		GasPrice   float64
-		GasFeeTip  float64
+		PrivateKey    string
+		MintCount     int
+		GasPrice      float64
+		GasFeeTip     float64
+		MaxBlobFeeCap float64
 	}{}
 
 	err = survey.Ask(qs, &resp)
 	if err != nil {
-		fmt.Printf("survey.Ask failed %v\n", err)
 		return
 	}
 	ok = true
