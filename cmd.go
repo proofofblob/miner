@@ -93,6 +93,11 @@ func cmd() (ok bool) {
 	blobFeeCap := eip4844.CalcBlobFee(parentExcessBlobGas)
 	defaultBlobFeeCap := big.NewInt(0).Mul(blobFeeCap, big.NewInt(2)) // 2 times
 	defaultBlobFeeCapGwei, _ := big.NewFloat(0).Quo(big.NewFloat(0).SetInt(defaultBlobFeeCap), big.NewFloat(1e9)).Float64()
+
+	if defaultBlobFeeCapGwei < 20 {
+		defaultBlobFeeCapGwei = 20
+	}
+
 	validate5 := func(inp interface{}) error {
 		input := inp.(string)
 		if len(input) == 0 {
