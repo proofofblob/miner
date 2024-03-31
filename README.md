@@ -1,6 +1,5 @@
 # miner
 
-
 ## 1. install golang
 
 download from https://go.dev/dl/
@@ -8,6 +7,7 @@ download from https://go.dev/dl/
 ## 2. clone repo
 
 git clone
+
 ```shell
 git clone https://github.com/proofofblob/miner.git
 ```
@@ -23,14 +23,18 @@ cd miner
 go build .
 ```
 
-
 ## 4. run miner
 
-```shell 
-# windows
-./miner.exe
+windows
 
-# linux/unix
+
+```shell 
+miner.exe
+```
+
+linux/unix
+
+```shell
 ./miner
 ```
 
